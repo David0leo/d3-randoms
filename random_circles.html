@@ -3,7 +3,7 @@
 
 <script type="text/javascript" src="d3.min.js"></script>
 <svg></svg>
-
+<button onclick="randomCircles()">Randomize</button>
 <script>
 // Adapted from http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
 
@@ -77,14 +77,20 @@ function randomArray(num_values){
 	var CIRCLE_PADDING = 1;
 
 	var data = randomArray(10);
-	var max_radius = Math.sqrt(Math.max.apply(Math, data)),
-		section_width_out_padding = (SVG_WIDTH / data.length) - (2 * CIRCLE_PADDING); //punny
 
 	var svg = d3.select("svg")
 				.attr("width", SVG_WIDTH)
 				.attr("height", SVG_HEIGHT);
+	g = svg.append("g");
 
-	var gradient = svg.append("defs")
+	
+
+	function update(data){
+		var t = d3.transition().duration(1750);
+		var max_radius = Math.sqrt(Math.max.apply(Math, data)),
+			section_width_out_padding = (SVG_WIDTH / data.length) - (2 * CIRCLE_PADDING); //punny
+		
+		var gradient = svg.append("defs")
 				  	  .selectAll("radialGradient")
 				  	  .data(data)
 				  	  .enter()
@@ -98,16 +104,66 @@ function randomArray(num_values){
 				      .attr("y2", "100%")
 				      .attr("spreadMethod", "pad");
 
-	gradient.append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "white")
-    .attr("stop-opacity", 0.8);
+		gradient.append("stop")
+			    .attr("offset", "0%")
+			    .attr("stop-color", "white")
+			    .attr("stop-opacity", 0.8);
 
-    gradient.append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", randomColor)
-    .attr("stop-opacity", 0.8);
+    	gradient.append("stop")
+    			.attr("offset", "100%")
+    			.attr("stop-color", randomColor)
+    			.attr("stop-opacity", 0.8);
 
+		//JOIN
+		var circles = g.selectAll("circle")
+					   .data(data, function(d){ return d; }); //update selection
+
+		//EXIT
+		circles.exit() //get exit selection
+			   .attr("class", "exit")
+			   .transition(t)
+			   .attr("cy", 200)
+			   .style("fill-opacity", 1e-6)
+      		   .remove();
+
+      	//UPDATE
+      	circles.attr("class", "update")
+      		   .attr("cy", 120)
+      		   .style("fill-opacity", 1)
+      		   .transition(t)
+      		   .attr("r", function(d) { return section_width_out_padding * (Math.sqrt(d) / max_radius) / 2; })
+      		   .attr("cx", function(d, i){
+      		   		return (i * (section_width_out_padding + 2 * CIRCLE_PADDING)) + CIRCLE_PADDING + (section_width_out_padding / 2);
+      		   });
+
+      	//ENTER
+      	circles.enter()
+      		   .append("circle")
+      		   .attr("class", "enter")
+      		   .attr("cy", 80)
+      		   .attr("cx", function(d, i){
+      		   		return (i * (section_width_out_padding + 2 * CIRCLE_PADDING)) + CIRCLE_PADDING + (section_width_out_padding / 2);
+      		   })
+      		   .attr("r", function(d) { return section_width_out_padding * (Math.sqrt(d) / max_radius) / 2; })
+      		   .attr("fill", function(d, i){
+					return "url(#grad" + i + ")"
+				})
+      		   .style("fill-opacity", 1e-6)
+      		   .attr("stroke", "black")
+      		   .transition(t)
+      		   .attr("cy", 120)
+       		   .style("fill-opacity", 1);
+	}
+
+	update(randomArray(10));
+
+	function randomCircles(){
+		var r = Math.floor((Math.random(10) * 10) + 10);
+		update(randomArray(r));
+		return;
+	}
+
+/*
 	var circle = svg.selectAll("circle")
 					.data(data)
 					.enter()
@@ -123,5 +179,5 @@ function randomArray(num_values){
 					})
 					.attr("opacity", 0.8)
 					.attr("stroke", "black");
-
+*/
 </script>
