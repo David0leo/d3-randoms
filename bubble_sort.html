@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<script type="text/javascript" src="d3.min.js"></script>
+<svg></svg>
+<button onclick="randomCircles()">Randomize</button>
+<button onclick="bubbleSortCircles()">Bubble Sort</button>
+
+
+
+
+<script type="text/javascript">
+	/******************** BUBBLE SORT ********************
+	 * Typical bubble sort implementation.               *
+	 * O(n^2) time complexity, O(1) space complexity.    *
+	 *                                                   *
+	 * Also stops if full pass w/o swapping any          *
+	 * elements, ie it stops when sorted.                *
+	 *                                                   *
+	 * 'Bubble' up the largest(smallest if descending)   * 
+	 * item in list until list is in sorted order.       *
+	 *****************************************************/
+
+	 function bubble_sort(A){
+	 	clean_pass = false;
+	 	n = A.length;
+	 	while (!clean_pass && n > 0){
+	 		for (var i = 0; i < n - 1; i++){
+	 			if (A[i] > a[i+1]){
+	 				var temp = A[i];
+	 				A[i] = A[i+1];
+	 				A[i+1] = temp;
+	 				clean_pass = false;
+	 			}else{
+	 				clean_pass = true;
+	 			}
+	 		}
+	 		n --;
+	 	}
+	 	return;
+	 }
+
+</script>
+
+
+
+
+<script>
+// Adapted from http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+
+var randomColor = (function(){
+  var golden_ratio_conjugate = 0.618033988749895;
+  var h = Math.random();
+
+  var hslToRgb = function (h, s, l){
+      var r, g, b;
+
+      if(s == 0){
+          r = g = b = l; // achromatic
+      }else{
+          function hue2rgb(p, q, t){
+              if(t < 0) t += 1;
+              if(t > 1) t -= 1;
+              if(t < 1/6) return p + (q - p) * 6 * t;
+              if(t < 1/2) return q;
+              if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+              return p;
+          }
+
+          var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          var p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+      }
+
+      return '#'+Math.round(r * 255).toString(16)+Math.round(g * 255).toString(16)+Math.round(b * 255).toString(16);
+  };
+  
+  return function(){
+    h += golden_ratio_conjugate;
+    h %= 1;
+    return hslToRgb(h, 0.5, 0.60);
+  };
+})();
+</script>
+
+
+
+
+<script>
+
+function randomArray(num_values){
+	for (var A=[],i=0;i<num_values; ++i) A[i]=i+1;
+
+	// http://stackoverflow.com/questions/962802#962890
+	function shuffle(array) {
+  		var tmp, current, top = array.length;
+  		if(top) while(--top) {
+    		current = Math.floor(Math.random() * (top + 1));
+    		tmp = array[current];
+    		array[current] = array[top];
+    		array[top] = tmp;
+  		}
+  	return array;
+	}
+
+	return shuffle(A);
+}
+
+</script>
+
+<script>
+	//See http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+	//and http://bl.ocks.org/jdarling/06019d16cb5fd6795edf
+	// for randomness in colors
+
+
+	var SVG_WIDTH = 900,
+		SVG_HEIGHT = 400;
+	var CIRCLE_PADDING = 2;
+
+	var MAX_CIRCLES = 12,
+		MIN_CIRCLES = 5;
+
+	var in_transition = false,
+		jiggling = false,
+		randomize_pls = false,
+		bubble_sort_pls = false;
+
+	var left_index = 0,
+		clean_pass = true,
+		n = 0;
+
+	var cur_data = randomArray(10);
+
+	var svg = d3.select("svg")
+				.attr("width", SVG_WIDTH)
+				.attr("height", SVG_HEIGHT);
+
+		g = svg.append("g");
+		defs = svg.append("defs");
+
+	
+
+	function update(data){
+		var t = d3.transition()
+				  .duration(1000)
+				  .on("start", function(){
+				  	in_transition = true;
+				  })
+				  .on("end", function(){
+				  	in_transition = false;
+				  	updated = true;
+				  });
+		
+		var max_radius = Math.sqrt(Math.max.apply(Math, data)),
+			section_width_out_padding = (SVG_WIDTH / data.length) - (2 * CIRCLE_PADDING); //punny
+
+		var data_sum = data.reduce(add, 0);
+		var available_space = SVG_WIDTH - 2 * CIRCLE_PADDING * data.length;
+
+		var CX = getCX(data);
+
+		//JOIN gradients
+		var gradients = defs.selectAll("radialGradient")
+				  	  		.data(data, function(d){ return d; });
+
+		//UPDATE gradients
+		gradients.attr("id", function(d, i){
+		      		return "grad" + d;
+		      	  })
+				 .transition(t)
+				 .attr("stop-color", randomColor);
+
+		//EXIT gradients
+		gradients.exit()
+				 .transition(t)
+				 .remove();
+
+		
+		
+		//ENTER gradients
+		var gradients_entering = gradients.enter()
+				 //.selectAll("radialGradient")
+		  	     .append("radialGradient")
+		      	 .attr("id", function(d, i){
+		      		return "grad" + d;
+		      	  })
+		      	 .attr("x1", "0%")
+		      	 .attr("y1", "0%")
+		      	 .attr("x2", "100%")
+		      	 .attr("y2", "100%")
+		      	 .attr("spreadMethod", "pad");
+
+		gradients_entering.append("stop")
+			    .attr("offset", "0%")
+			    .attr("stop-color", "white")
+			    .attr("stop-opacity", 0.8);
+
+    	gradients_entering.append("stop")
+    			.attr("offset", "100%")
+    			.attr("stop-color", randomColor)
+    			.attr("stop-opacity", 0.8);
+
+		//JOIN circles
+		var circles = g.selectAll("circle")
+					   .data(data, function(d){ return d; }); //update selection
+
+		//EXIT circles
+		circles.exit() //get exit selection
+			   .attr("class", "exit")
+			   .transition(t)
+			   .attr("cy", SVG_HEIGHT/4 * 3)
+			   .style("fill-opacity", 1e-6)
+      		   .remove();
+
+      	//UPDATE circles
+      	circles.attr("class", "update")
+      		   .attr("cy", SVG_HEIGHT/2)
+      		   .transition(t)
+      		   .attr("id", function(d, i){ return "circle_" + d})
+      		   .attr("fill", function(d, i){
+					return "url(#grad" + d + ")"
+				})
+      		   .attr("r", function(d, i) {
+      		   		return available_space * (d / data_sum) / 2; 
+      		   	})
+      		   .attr("cx", function(d, i){
+      		   		return CX[i];
+      		   });
+
+      	//ENTER circles
+      	circles.enter()
+      		   .append("circle")
+      		   .attr("id", function(d, i){ return "circle_" + d; })
+      		   .attr("class", "enter")
+      		   .attr("cy", SVG_HEIGHT/4)
+      		   .attr("r", function(d) { 
+      		   		return available_space * (d / data_sum) / 2; 
+      		   	})
+      		   .attr("cx", function(d, i){
+      		   		return CX[i];
+      		   })
+      		   .attr("pos_x", function(){
+      		   		return d3.select(this).attr("cx")
+      		   })
+      		   .attr("pos_y", function(){
+      		   		return d3.select(this).attr("cy")
+      		   })
+      		   .attr("fill", function(d){
+					return "url(#grad" + d + ")"
+				})
+      		   .style("fill-opacity", 1e-6)
+      		   //.attr("stroke", "black")
+      		   .transition(t)
+      		   .attr("cy", SVG_HEIGHT/2)
+       		   .style("fill-opacity", 1);
+	}
+
+	update(cur_data);
+	
+	setInterval(function(){
+		if (!in_transition && !jiggling && !randomize_pls && !bubble_sort_pls){
+			return jiggleCircles();
+		}else if( !in_transition && !jiggling && !randomize_pls){
+			return setTimeout(bubbleSortCircles(), 2000);
+		}
+	}, 50);
+
+	function getCX(data){
+		var center_X = new Array();
+		var data_sum = data.reduce(add, 0);
+		var available_space = SVG_WIDTH - 2 * CIRCLE_PADDING * data.length;
+
+		for (var i = 0; i < data.length; i++){
+			cur_center_x = CIRCLE_PADDING;
+
+			if (i != 0){
+				var prev_radius = available_space * (data[i-1] / data_sum) / 2;
+				cur_center_x += CIRCLE_PADDING + center_X[i - 1] + prev_radius;
+			}
+
+			cur_center_x += available_space * (data[i] / data_sum) / 2;
+			center_X.push(cur_center_x);
+		}
+		return center_X;
+	}
+
+	function add(a, b){
+    	return a + b;
+	}
+
+	function jiggleCircles(){
+		var jiggle_factor = 7;
+
+			jiggling = true;
+
+			circles = d3.selectAll("circle")
+						//.data(cur_data)
+						.transition()
+						.ease(d3.easeLinear)
+						.duration(1000)
+						.attr("prev_x", function(d){
+							return d3.select(this).attr("cx");
+						})
+						.attr("prev_y", function(d){
+							return d3.select(this).attr("cy");
+						})
+						.attr("cx", function(d){
+							return +d3.select(this).attr("cx") + (jiggle_factor * Math.random() - jiggle_factor/2);
+						})
+						.attr("cy", function(d){
+							return +d3.select(this).attr("cy") + (jiggle_factor * Math.random() - jiggle_factor/2);
+						})
+						.on("end", function(){
+							d3.selectAll("circle")
+							  .transition()
+							  .ease(d3.easeLinear)
+							  .duration(1000)
+							  .attr("cx", function(d, i){
+									return +d3.select(this).attr("prev_x");
+							  })
+							  .attr("cy", function(d, i){
+									return +d3.select(this).attr("prev_y");
+							  })
+							  .on("end", function(){
+							  	jiggling = false;
+							  	if (randomize_pls){
+							  		randomCircles();
+							  	}
+							  });
+						});
+
+	}
+
+
+	function randomCircles(){
+		if (in_transition){
+			return;
+		}else{
+			if (jiggling){
+				randomize_pls = true;
+			}else{
+				var range = Math.floor((Math.random() * (MAX_CIRCLES - MIN_CIRCLES)) + MIN_CIRCLES);
+				cur_data = randomArray(range);
+				randomize_pls = false;
+
+				d3.selectAll("circle")
+				  .attr("stroke", "white");
+
+				update(cur_data);
+				return;
+			}	
+		}
+	}
+
+
+	function bubbleSortCircles(){
+		if (in_transition){
+			return;
+		}else{
+			if (jiggling){
+				bubble_sort_pls = true;
+				left_index = 0;
+				clean_pass = true;
+				n = cur_data.length;
+				//set all strokes white as they might be black from prev sort
+				d3.selectAll("circle")
+				  .attr("stroke", "white");
+			}else{
+				// Sorting algorithm included at start of file
+				// just for reference.
+				bubble_sort_step();
+
+			}
+		}
+	}
+
+	function bubble_sort_step(){
+		if (left_index > 0){
+			d3.select("#circle_" + cur_data[left_index-1])
+			  .attr("stroke", "white");
+		}
+		d3.select("#circle_" + cur_data[left_index])
+		  .attr("stroke", "black");
+
+		d3.select("#circle_" + cur_data[left_index+1])
+		  .attr("stroke", "black");
+
+		if (left_index == n - 1){
+			//at end, check if clean_pass, ie if sorted
+			if (clean_pass){
+				bubble_sort_pls = false;
+				d3.selectAll("circle")
+				  .attr("stroke", "black");
+				return;
+			}else{
+				// start over
+				clean_pass = true;
+				left_index = 0;
+				n = n - 1;
+				return;
+			}
+		}
+		if (cur_data[left_index] > cur_data[left_index+1]){
+			//swap
+			var temp_data = cur_data[left_index];
+				cur_data[left_index] = cur_data[left_index+1];
+				cur_data[left_index+1] = temp_data;
+
+			clean_pass = false;
+
+			CX = getCX(cur_data);
+		}
+		left_index ++;
+		update(cur_data); // call always to keep timing right
+	}
+
+
+</script>
